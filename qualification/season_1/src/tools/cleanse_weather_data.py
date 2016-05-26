@@ -14,7 +14,7 @@ for dataset in ['training_data', 'test_set_1']:
         with open(input_file, 'r') as f:
             for line in f.readlines():
                 date, time, weather, temperature, pm = line.strip().split()
-                formatted_line = "%s %s %s %s\n" % (get_datetime_slot(date + ' ' + time, 10), weather, temperature, pm)
+                formatted_line = "%s\t%s\t%s\t%s\n" % (get_datetime_slot(date + ' ' + time, 10), weather, temperature, pm)
                 output += formatted_line
         output = output[:-1]
         output_file = cleansed_weather_folder + '/' + file_name

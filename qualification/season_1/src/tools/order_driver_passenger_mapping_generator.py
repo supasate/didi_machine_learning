@@ -1,14 +1,5 @@
 import os
 
-cluster_map_path = '../../training_data/cluster_map/cluster_map'
-dict_content = ""
-with open(cluster_map_path, 'r') as f:
-    for line in f.readlines():
-        district_hash, district_id = line.strip().split()
-        formatted_line = '    "' + district_hash + '" : "' + district_id + '",\n'
-        dict_content += formatted_line
-dict_content = dict_content[:-2]
-
 driver_run_no = 1
 passenger_run_no = 1
 order_run_no = 1
@@ -52,20 +43,18 @@ for passenger_hash, passenger_id in passenger_dict.items():
     passenger_dict_content += '    "' + passenger_hash + '":"' +  passenger_id + '",\n'
 passenger_dict_content = passenger_dict_content[: -2]
 
-
-
 output = 'order_map = {\n' + order_dict_content + '\n}\n\n'
 output += 'driver_map = {\n' + driver_dict_content + '\n}\n\n'
 output += 'passenger_map = {\n' + passenger_dict_content + '\n}\n'
 output += """
 def get_order_id(hash):
-    return order_map[hash]
+    return order_map[hash] if hash in order_map else hash
 
 def get_driver_id(hash):
-    return driver_map[hash]
+    return driver_map[hash] if hash in driver_map else hash
 
 def get_passenger_id(hash):
-    return passenger_map[hash]
+    return passenger_map[hash] if hash in passenger_map else hash
 """
 
 output_path = './order_driver_passenger_mapping.py'

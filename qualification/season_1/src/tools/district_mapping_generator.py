@@ -20,7 +20,7 @@ district_dict_content = district_dict_content[:-2]
 output = 'district_map = {\n' + district_dict_content + '\n}\n'
 output += """
 def get_district_id(hash):
-    return district_map[hash]
+    return district_map[hash] if hash in district_map else hash
 """
 
 output_path = './district_mapping.py'

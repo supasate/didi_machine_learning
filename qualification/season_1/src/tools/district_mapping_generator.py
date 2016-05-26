@@ -3,7 +3,7 @@ dict_content = ""
 with open(cluster_map_path, 'r') as f:
     for line in f.readlines():
         district_hash, district_id = line.strip().split()
-        formatted_line = '    "' + district_hash + '" : ' + district_id + ',\n'
+        formatted_line = '    "' + district_hash + '" : "' + district_id + '",\n'
         dict_content += formatted_line
 dict_content = dict_content[:-2]
 

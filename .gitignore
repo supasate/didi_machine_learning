@@ -2,6 +2,7 @@
 *.pyc
 citydata.tar.gz
 cleansed_data.tar.gz
+processed_data.tar.gz
 qualification/season_1/test_set_1/*
 qualification/season_1/training_data/*
 qualification/season_1/cleansed_data/*

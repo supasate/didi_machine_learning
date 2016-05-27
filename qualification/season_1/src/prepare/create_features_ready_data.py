@@ -111,9 +111,7 @@ for dataset in ['training_data', 'test_set_1']:
                     celsius = weathers_map[datetime_slot]['celsius']
                     pm25 = weathers_map[datetime_slot]['pm25']
                 else:
-                    weather = 'NULL'
-                    celsius = 'NULL'
-                    pm25 = 'NULL'
+                    continue
 
                 if (datetime_slot in traffic_map) and (district_id in traffic_map[datetime_slot]):
                     tf_lv1 = traffic_map[datetime_slot][district_id]['tf_lv1']
@@ -121,10 +119,22 @@ for dataset in ['training_data', 'test_set_1']:
                     tf_lv3 = traffic_map[datetime_slot][district_id]['tf_lv3']
                     tf_lv4 = traffic_map[datetime_slot][district_id]['tf_lv4']
                 else:
-                    tf_lv1 = 'NULL'
-                    tf_lv2 = 'NULL'
-                    tf_lv3 = 'NULL'
-                    tf_lv4 = 'NULL'
+                    continue
+
+                if features['gap_t-1'] != 'NULL':
+                    gap_t_1 = features['gap_t-1']
+                else:
+                    continue
+
+                if features['gap_t-2'] != 'NULL':
+                    gap_t_2 = features['gap_t-2']
+                else:
+                    continue
+
+                if features['gap'] != 'NULL':
+                    gap = features['gap']
+                else:
+                    continue
 
                 f.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" % (
                     district_id,
@@ -137,7 +147,7 @@ for dataset in ['training_data', 'test_set_1']:
                     tf_lv2,
                     tf_lv3,
                     tf_lv4,
-                    features['gap_t-1'],
-                    features['gap_t-2'],
-                    features['gap']
+                    gap_t_1,
+                    gap_t_2,
+                    gap
                 ))

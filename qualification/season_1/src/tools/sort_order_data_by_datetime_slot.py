@@ -4,7 +4,7 @@ processed_data_folder = '../../processed_data'
 
 for dataset in ['training_data', 'test_set_1']:
     order_folder = '../../cleansed_data/' + dataset + '/order_data'
-    processed_order_folder = processed_data_folder + '/' + dataset + '/order_data'
+    processed_order_folder = processed_data_folder + '/sorted_order/' + dataset
 
     if not os.path.exists(processed_order_folder):
         os.makedirs(processed_order_folder)

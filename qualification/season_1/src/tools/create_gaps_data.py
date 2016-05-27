@@ -1,5 +1,6 @@
 import os
 from collections import defaultdict
+from day_of_week import get_day_of_week
 
 processed_data_folder = '../../processed_data'
 
@@ -26,4 +27,4 @@ for dataset in ['training_data', 'test_set_1']:
         output_file = gaps_folder + '/' + file_name
         with open(output_file, 'w') as f:
             for gap in sorted_gaps_count:
-                f.write("%s\t%s\t\n" % (gap[0], gap[1]))
+                f.write("%s\t%s\t%s\t\n" % (gap[0], get_day_of_week(gap[0]), gap[1]))

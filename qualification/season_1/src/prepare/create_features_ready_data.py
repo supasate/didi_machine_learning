@@ -1,4 +1,5 @@
 import os
+from time import time
 
 # Return { datetime_slot: { 'weather': value, 'celsius': value, 'pm25': value } }
 def load_weather_data(weather_folder_path):
@@ -64,11 +65,13 @@ def load_gap_data(gap_folder_path):
                     continue
 
                 district_id, datetime_slot, day_of_week, demand, supply, gap = line.strip().split()
-                if datetime_slot not in gap_map:
-                    gap_map[datetime_slot] = dict()
+
+                if district_id not in gap_map:
+                    gap_map[district_id] = dict()
+
                 year, month, day, time_slot = datetime_slot.split('-')
                 date = year + '-' + month + '-' + day
-                gap_map[datetime_slot][district_id] = {
+                gap_map[district_id][datetime_slot] = {
                     'date': date,
                     'time_slot': time_slot,
                     'day_of_week': day_of_week,
@@ -78,28 +81,28 @@ def load_gap_data(gap_folder_path):
                 }
 
     # Append data at previous time slot and previous of previous time slot
-    for datetime_slot, district_dict in gap_map.items():
-        for district_id, features in district_dict.items():
+    for district_id, datetime_slot_dict in gap_map.items():
+        for datetime_slot, features in datetime_slot_dict.items():
             previous_datetime_slot = get_previous_datetime_slot(datetime_slot, 1)
             previous_of_previous_datetime_slot = get_previous_datetime_slot(datetime_slot, 2)
 
-            if (previous_datetime_slot in gap_map) and (district_id in gap_map[previous_datetime_slot]):
-                gap_map[datetime_slot][district_id]['demand_t-1'] = gap_map[previous_datetime_slot][district_id]['demand']
-                gap_map[datetime_slot][district_id]['supply_t-1'] = gap_map[previous_datetime_slot][district_id]['supply']
-                gap_map[datetime_slot][district_id]['gap_t-1'] = gap_map[previous_datetime_slot][district_id]['gap']
+            if (district_id in gap_map) and (previous_datetime_slot in gap_map[district_id]):
+                gap_map[district_id][datetime_slot]['demand_t-1'] = gap_map[district_id][previous_datetime_slot]['demand']
+                gap_map[district_id][datetime_slot]['supply_t-1'] = gap_map[district_id][previous_datetime_slot]['supply']
+                gap_map[district_id][datetime_slot]['gap_t-1'] = gap_map[district_id][previous_datetime_slot]['gap']
             else:
-                gap_map[datetime_slot][district_id]['demand_t-1'] = '0'
-                gap_map[datetime_slot][district_id]['supply_t-1'] = '0'
-                gap_map[datetime_slot][district_id]['gap_t-1'] = '0'
+                gap_map[district_id][datetime_slot]['demand_t-1'] = '0'
+                gap_map[district_id][datetime_slot]['supply_t-1'] = '0'
+                gap_map[district_id][datetime_slot]['gap_t-1'] = '0'
 
-            if (previous_of_previous_datetime_slot in gap_map) and (district_id in gap_map[previous_of_previous_datetime_slot]):
-                gap_map[datetime_slot][district_id]['demand_t-2'] = gap_map[previous_of_previous_datetime_slot][district_id]['demand']
-                gap_map[datetime_slot][district_id]['supply_t-2'] = gap_map[previous_of_previous_datetime_slot][district_id]['supply']
-                gap_map[datetime_slot][district_id]['gap_t-2'] = gap_map[previous_of_previous_datetime_slot][district_id]['gap']
+            if (district_id in gap_map) and (previous_of_previous_datetime_slot in gap_map[district_id]):
+                gap_map[district_id][datetime_slot]['demand_t-2'] = gap_map[district_id][previous_of_previous_datetime_slot]['demand']
+                gap_map[district_id][datetime_slot]['supply_t-2'] = gap_map[district_id][previous_of_previous_datetime_slot]['supply']
+                gap_map[district_id][datetime_slot]['gap_t-2'] = gap_map[district_id][previous_of_previous_datetime_slot]['gap']
             else:
-                gap_map[datetime_slot][district_id]['demand_t-2'] = '0'
-                gap_map[datetime_slot][district_id]['supply_t-2'] = '0'
-                gap_map[datetime_slot][district_id]['gap_t-2'] = '0'
+                gap_map[district_id][datetime_slot]['demand_t-2'] = '0'
+                gap_map[district_id][datetime_slot]['supply_t-2'] = '0'
+                gap_map[district_id][datetime_slot]['gap_t-2'] = '0'
 
     return gap_map
 
@@ -141,26 +144,39 @@ def get_nearest_demand_supply_gap(datetime_slot, district_id, gap_map, slot_dist
 
     while timeslot >= 1 and slot_distance_limit >= 0:
         cur_datetime_slot = '-'.join([date, str(timeslot)])
-        if (cur_datetime_slot in gap_map) and (district_id in gap_map[cur_datetime_slot]):
-            return gap_map[cur_datetime_slot][district_id]
+        if (district_id in gap_map) and (cur_datetime_slot in gap_map[district_id]):
+            return gap_map[district_id][cur_datetime_slot]
         timeslot -= 1
         slot_distance_limit -= 1
 
     return None
 
 def save_features(output_path, gap_map, weather_map, traffic_map):
+    incomplete_data_count = 0
+
     with open(output_path, 'w') as f:
         f.write('# district_id\tdate\ttimeslot\tday_of_week\tweather_t-1\tcelsius_t-1\tpm25_t-1\tweather_t-2\tcelsius_t-2\tpm25_t-2\ttf_lv1_t-1\ttf_lv2_t-1\ttf_lv3_t-1\ttf_lv4_t-1\ttf_lv1_t-2\ttf_lv2_t-2\ttf_lv3_t-2\ttf_lv4_t-2\tdemand_t-1\tsupply_t-1\tgap_t-1\tdemand_t-2\tsupply_t-2\tgap_t-2\tgap\n')
 
-        for datetime_slot, district_dict in gap_map.items():
-            # There is no previous 2 slots for slot 1 and 2
-            if datetime_slot[-2:] in ['-1', '-2']:
-                continue
+        # Sort output by district_id first
+        gap_map_sorted_by_district_id = sorted(gap_map.items(), key = lambda x: int(x[0]))
 
-            previous_datetime_slot = get_previous_datetime_slot(datetime_slot, 1)
-            previous_of_previous_datetime_slot = get_previous_datetime_slot(datetime_slot, 2)
+        for item in gap_map_sorted_by_district_id:
+            district_id = item[0]
+            datetime_slot_features_map = item[1]
 
-            for district_id, features in district_dict.items():
+            # Then, sort output by datetime, then by slot
+            sorted_features_map_by_datetime_slot = sorted(datetime_slot_features_map.items(), key = lambda x: (x[0][: x[0].rfind('-')], int(x[0].split('-')[3])))
+            for sub_item in sorted_features_map_by_datetime_slot:
+                datetime_slot = sub_item[0]
+                features = sub_item[1]
+
+                # If slot is less than 3, it doesn't have 2 previous slots info, ignore it
+                if datetime_slot[-2:] in ['-1', '-2']:
+                    incomplete_data_count += 1
+                    continue
+
+                previous_datetime_slot = get_previous_datetime_slot(datetime_slot, 1)
+                previous_of_previous_datetime_slot = get_previous_datetime_slot(datetime_slot, 2)
 
                 date = features['date']
                 time_slot = features['time_slot']
@@ -173,7 +189,6 @@ def save_features(output_path, gap_map, weather_map, traffic_map):
                 weather_t2 = get_nearest_weather(previous_of_previous_datetime_slot, weather_map, WEATHER_SLOT_DISTANCE_LIMIT)
                 if weather_t2 == None:
                     weather_t2 = weather_t1
-
 
                 # Get traffic of 2 previous slots (or nearest if there is no data)
                 TRAFFIC_SLOT_DISTANCE_LIMIT = 3 # 30 minutes
@@ -191,6 +206,7 @@ def save_features(output_path, gap_map, weather_map, traffic_map):
 
                 # Ignore incomplete data point
                 if gap == None or weather_t1 == None or tf_lv_t1 == None or gap_t1 == None:
+                    incomplete_data_count += 1
                     continue
 
                 f.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" % (
@@ -204,8 +220,12 @@ def save_features(output_path, gap_map, weather_map, traffic_map):
                     gap_t2['demand'], gap_t2['supply'], gap_t2['gap'],
                     gap
                 ))
+    print("number of incomplete data", incomplete_data_count)
 
 if __name__ == '__main__':
+    # Show processing time
+    start_time = time()
+
     OUTPUT_FOLDER_PREFIX = '../../processed_data/features_data/'
     CLEANSED_DATA_FOLDER = '../../cleansed_data'
     PROCESSED_DATA_FOLDER = '../../processed_data'
@@ -232,3 +252,4 @@ if __name__ == '__main__':
             os.makedirs(features_folder)
 
         save_features(features_file, gap_map, weather_map, traffic_map)
+    print("Creating features data time", round(time() - start_time, 3), "s")

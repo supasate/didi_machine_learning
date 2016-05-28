@@ -46,7 +46,8 @@ def save_couting(output_path, counter_dict):
                 f.write("%s\t%s\t%s\t%s\t%s\t%s\n" % (district_id, datetime_slot, day_of_week, demand_count, supply_count, gap_count))
 
 if __name__ == "__main__":
-    t0 = time()
+    # Just for show processing time
+    start_time = time()
 
     OUTPUT_FOLDER_PREFIX = '../../processed_data/gaps_data/'
 
@@ -68,4 +69,5 @@ if __name__ == "__main__":
             # Save couting into a file
             output_path = OUTPUT_FOLDER + '/gaps_' + file_name
             save_couting(output_path, counter)
-    print("Creating gaps data time:", round(time() - t0, 3), "s")
+
+    print("Creating gaps data time:", round(time() - start_time, 3), "s")

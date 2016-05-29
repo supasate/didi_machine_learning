@@ -10,5 +10,6 @@ qualification/season_1/test_set_1/*
 qualification/season_1/training_data/*
 qualification/season_1/cleansed_data/*
 qualification/season_1/processed_data/*
+qualification/season_1/prediction_data/to_predict_features
 qualification/season_1/src/tools/district_mapping.py
 qualification/season_1/src/tools/order_driver_passenger_mapping.py

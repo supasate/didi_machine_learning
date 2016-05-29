@@ -3,16 +3,21 @@ sys.path.append('../tools/')
 
 from time import time
 from sklearn.cross_validation import train_test_split
-from sklearn.linear_model import LinearRegression
 from feature_format import load_and_split_data
 from model_helper import save_model
 from mape import mape_score
+
+# Import learning algo
+from sklearn.linear_model import LinearRegression
 
 # Ratio to split cross validation test set
 TEST_SIZE = 0.5
 
 # Seed number for random splitting of cross validation test set
 RANDOM_STATE = 42
+
+# Model name to be saved
+MODEL_NAME = 'linear_regression'
 
 # Change prediction model and parameters here
 def create_model():
@@ -44,4 +49,4 @@ if __name__ == "__main__":
     print('MAPE score ', score)
 
     # Save model for later use
-    save_model(model, './model', 'linear_regression')
+    save_model(model, './model', MODEL_NAME)

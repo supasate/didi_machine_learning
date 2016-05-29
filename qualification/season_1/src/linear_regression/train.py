@@ -4,7 +4,7 @@ sys.path.append('../tools/')
 from time import time
 from sklearn.cross_validation import train_test_split
 from sklearn.linear_model import LinearRegression
-from feature_format import load_and_split_training_data
+from feature_format import load_and_split_data
 from model_helper import save_model
 from mape import mape_score
 
@@ -17,13 +17,13 @@ RANDOM_STATE = 42
 # Change prediction model and parameters here
 def create_model():
     model = LinearRegression()
-    
+
     return model
 
 if __name__ == "__main__":
     # Load and split training data into metadata, features, target
     data_file = '../../processed_data/features_data/training_data/features_ready'
-    metadata_list, features_list, target_list = load_and_split_training_data(data_file)
+    metadata_list, features_list, target_list = load_and_split_data(data_file)
 
     # Split data into training set and cross validation set
     feature_train, feature_test, target_train, target_test = train_test_split(features_list, target_list, test_size = TEST_SIZE, random_state = RANDOM_STATE)

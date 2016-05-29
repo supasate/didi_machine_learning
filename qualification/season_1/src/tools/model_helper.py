@@ -2,7 +2,7 @@ import os
 from datetime import datetime
 from sklearn.externals import joblib
 
-def save_model(model, save_folder, model_name):
+def save_model(model_object, save_folder, model_name):
     # Create folder if not exist
     if not os.path.exists(save_folder):
         os.makedirs(save_folder)
@@ -13,11 +13,14 @@ def save_model(model, save_folder, model_name):
     file_path = os.path.join(save_folder, file_name)
 
     # Save model
-    joblib.dump(model, file_path)
+    joblib.dump(model_object, file_path)
 
 def load_model(file_path):
     return joblib.load(file_path)
 
+# Usage:
+# load_latest_model('./model', 'svm_model')
+# will look for file name 'svm_model*.pkl' in ./model folder
 def load_latest_model(lookup_folder, model_name):
     # Lookup for file name containing model_name
     files = []

@@ -1,5 +1,8 @@
 .DS_Store
 *.pyc
+*.pkl
+*.npy
+__pycache__
 citydata.tar.gz
 cleansed_data.tar.gz
 processed_data.tar.gz

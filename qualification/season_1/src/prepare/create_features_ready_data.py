@@ -1,5 +1,7 @@
 import os
+import sys
 from time import time
+from day_of_week import get_day_of_week
 
 # Return { datetime_slot: { 'weather': value, 'celsius': value, 'pm25': value } }
 def load_weather_data(weather_folder_path):
@@ -114,13 +116,23 @@ def split_date_and_timeslot(datetime_slot):
 
 def get_nearest_weather(datetime_slot, weather_map, slot_distance_limit):
     date, timeslot = split_date_and_timeslot(datetime_slot)
-    timeslot = int(timeslot)
+    timeslot_countdown = int(timeslot)
+    timeslot_countup = int(timeslot)
 
-    while timeslot >= 1 and slot_distance_limit >= 0:
-        cur_datetime_slot = '-'.join([date, str(timeslot)])
+    if slot_distance_limit == None:
+        slot_distance_limit = sys.maxint
+
+    while (timeslot_countdown >= 1 or timeslot_countup <= 144) and slot_distance_limit >= 0:
+        cur_datetime_slot = '-'.join([date, str(timeslot_countdown)])
         if cur_datetime_slot in weather_map:
             return weather_map[cur_datetime_slot]
-        timeslot -= 1
+
+        cur_datetime_slot = '-'.join([date, str(timeslot_countup)])
+        if cur_datetime_slot in weather_map:
+            return weather_map[cur_datetime_slot]
+
+        timeslot_countdown -= 1
+        timeslot_countup += 1
         slot_distance_limit -= 1
 
     return None
@@ -128,6 +140,9 @@ def get_nearest_weather(datetime_slot, weather_map, slot_distance_limit):
 def get_nearest_traffic_level(datetime_slot, district_id, traffic_map, slot_distance_limit):
     date, timeslot = split_date_and_timeslot(datetime_slot)
     timeslot = int(timeslot)
+
+    if slot_distance_limit == None:
+        slot_distance_limit = sys.maxint
 
     while timeslot >= 1 and slot_distance_limit >= 0:
         cur_datetime_slot = '-'.join([date, str(timeslot)])
@@ -141,6 +156,9 @@ def get_nearest_traffic_level(datetime_slot, district_id, traffic_map, slot_dist
 def get_nearest_demand_supply_gap(datetime_slot, district_id, gap_map, slot_distance_limit):
     date, timeslot = split_date_and_timeslot(datetime_slot)
     timeslot = int(timeslot)
+
+    if slot_distance_limit == None:
+        slot_distance_limit = sys.maxint
 
     while timeslot >= 1 and slot_distance_limit >= 0:
         cur_datetime_slot = '-'.join([date, str(timeslot)])
@@ -201,11 +219,13 @@ def save_features(output_path, gap_map, weather_map, traffic_map):
                 DEMAND_SUPPLY_GAP_DISTANCE_LIMIT = 3 # 30 minutes
                 gap_t1 = get_nearest_demand_supply_gap(previous_datetime_slot, district_id, gap_map, DEMAND_SUPPLY_GAP_DISTANCE_LIMIT)
                 gap_t2 = get_nearest_demand_supply_gap(previous_of_previous_datetime_slot, district_id, gap_map, DEMAND_SUPPLY_GAP_DISTANCE_LIMIT)
+                if gap_t1 == None:
+                    gap_t1 = {'demand': 0, 'supply': 0, 'gap': 0}
                 if gap_t2 == None:
-                    gap_t2 = gap_t1
+                    gap_t2 = {'demand': 0, 'supply': 0, 'gap': 0}
 
                 # Ignore incomplete data point
-                if gap == None or weather_t1 == None or tf_lv_t1 == None or gap_t1 == None:
+                if gap == None or weather_t1 == None or tf_lv_t1 == None:
                     incomplete_data_count += 1
                     continue
 
@@ -221,6 +241,75 @@ def save_features(output_path, gap_map, weather_map, traffic_map):
                     gap
                 ))
     print("number of incomplete data", incomplete_data_count)
+
+def load_datetime_slot_to_predict(file_path):
+    datetime_slot_list = []
+    with open(file_path, 'r') as f:
+        for line in f.readlines():
+            datetime_slot_list.append(line.strip())
+    return datetime_slot_list
+
+def save_features_to_predict(output_path, datetime_slot_to_predict_file_path, gap_map, weather_map, traffic_map):
+
+    incomplete_data_count = 0
+    datetime_slot_to_predict_list = load_datetime_slot_to_predict(datetime_slot_to_predict_file_path)
+
+    with open(output_path, 'w') as f:
+        f.write('# district_id\tdate\ttimeslot\tday_of_week\tweather_t-1\tcelsius_t-1\tpm25_t-1\tweather_t-2\tcelsius_t-2\tpm25_t-2\ttf_lv1_t-1\ttf_lv2_t-1\ttf_lv3_t-1\ttf_lv4_t-1\ttf_lv1_t-2\ttf_lv2_t-2\ttf_lv3_t-2\ttf_lv4_t-2\tdemand_t-1\tsupply_t-1\tgap_t-1\tdemand_t-2\tsupply_t-2\tgap_t-2\tgap\n')
+
+        for district_id_int in range(1, 67):
+            for datetime_slot in datetime_slot_to_predict_list:
+                district_id = str(district_id_int)
+
+                year, month, day, time_slot = datetime_slot.split('-')
+                date = '-'.join([year, month, day])
+                day_of_week = get_day_of_week(datetime_slot)
+
+                previous_datetime_slot = get_previous_datetime_slot(datetime_slot, 1)
+                previous_of_previous_datetime_slot = get_previous_datetime_slot(datetime_slot, 2)
+
+                # Get weather of 2 previous slots (or nearest if there is no data)
+                WEATHER_SLOT_DISTANCE_LIMIT = None # 90 minutes
+                weather_t1 = get_nearest_weather(previous_datetime_slot, weather_map, WEATHER_SLOT_DISTANCE_LIMIT)
+                weather_t2 = get_nearest_weather(previous_of_previous_datetime_slot, weather_map, WEATHER_SLOT_DISTANCE_LIMIT)
+                if weather_t2 == None:
+                    weather_t2 = weather_t1
+
+                # Get traffic of 2 previous slots (or nearest if there is no data)
+                TRAFFIC_SLOT_DISTANCE_LIMIT = None # 30 minutes
+                tf_lv_t1 = get_nearest_traffic_level(previous_datetime_slot, district_id, traffic_map, TRAFFIC_SLOT_DISTANCE_LIMIT)
+                tf_lv_t2 = get_nearest_traffic_level(previous_of_previous_datetime_slot, district_id, traffic_map, TRAFFIC_SLOT_DISTANCE_LIMIT)
+                if tf_lv_t2 == None:
+                    tf_lv_t2 = tf_lv_t1
+
+                # Get demand, supply, gap of 2 previous slots (or nearest if there is no data)
+                DEMAND_SUPPLY_GAP_DISTANCE_LIMIT = None # 30 minutes
+                gap_t1 = get_nearest_demand_supply_gap(previous_datetime_slot, district_id, gap_map, DEMAND_SUPPLY_GAP_DISTANCE_LIMIT)
+                gap_t2 = get_nearest_demand_supply_gap(previous_of_previous_datetime_slot, district_id, gap_map, DEMAND_SUPPLY_GAP_DISTANCE_LIMIT)
+                if gap_t1 == None:
+                    gap_t1 = {'demand': 0, 'supply': 0, 'gap': 0}
+                if gap_t2 == None:
+                    gap_t2 = {'demand': 0, 'supply': 0, 'gap': 0}
+
+                gap = 'PREDICT'
+
+                # Ignore incomplete data point
+                if weather_t1 == None or tf_lv_t1 == None:
+                    incomplete_data_count += 1
+                    continue
+
+                f.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" % (
+                    district_id,
+                    date, time_slot, day_of_week,
+                    weather_t1['weather'], weather_t1['celsius'], weather_t1['pm25'],
+                    weather_t2['weather'], weather_t2['celsius'], weather_t2['pm25'],
+                    tf_lv_t1['tf_lv1'], tf_lv_t1['tf_lv2'], tf_lv_t1['tf_lv3'], tf_lv_t1['tf_lv4'],
+                    tf_lv_t2['tf_lv1'], tf_lv_t2['tf_lv2'], tf_lv_t2['tf_lv3'], tf_lv_t2['tf_lv4'],
+                    gap_t1['demand'], gap_t1['supply'], gap_t1['gap'],
+                    gap_t2['demand'], gap_t2['supply'], gap_t2['gap'],
+                    gap
+                ))
+    print("features_to_predict: incomplete_data_count", incomplete_data_count)
 
 if __name__ == '__main__':
     # Show processing time
@@ -252,4 +341,11 @@ if __name__ == '__main__':
             os.makedirs(features_folder)
 
         save_features(features_file, gap_map, weather_map, traffic_map)
+
+        if dataset == 'test_set_1':
+            PREDICTION_DATA_FOLDER = '../../prediction_data'
+            features_to_predict_file = PREDICTION_DATA_FOLDER + '/to_predict_features'
+            datetime_slot_for_prediction_file = PREDICTION_DATA_FOLDER + '/datetime_for_prediction.txt'
+
+            save_features_to_predict(features_to_predict_file, datetime_slot_for_prediction_file, gap_map, weather_map, traffic_map)
     print("Creating features data time", round(time() - start_time, 3), "s")

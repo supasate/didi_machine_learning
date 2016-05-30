@@ -8,7 +8,7 @@ from model_helper import save_model
 from mape import mape_score
 
 # Import learning algo
-from sklearn.svm import SVC
+from sklearn.svm import SVR
 
 # Ratio to split cross validation test set
 TEST_SIZE = 0.2
@@ -21,7 +21,7 @@ MODEL_NAME = 'svm'
 
 # Change prediction model and parameters here
 def create_model():
-    model = SVC()
+    model = SVR(kernel='rbf', C=1e3, gamma=0.1)
 
     return model
 

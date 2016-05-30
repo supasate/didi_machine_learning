@@ -108,6 +108,28 @@ def load_gap_data(gap_folder_path):
 
     return gap_map
 
+def load_poi_summary_data(poi_summary_path):
+    # Initialize 66 districts and 25 top-level pois
+    poi_map = dict()
+    for district_id in range(1, 67):
+        poi_map[str(district_id)] = dict()
+        for poi in range(1, 26):
+            poi_map[str(district_id)][str(poi)] = None
+
+    with open(poi_summary_path, 'r') as f:
+        for line in f.readlines():
+            # Ignore comment line
+            if line[0] == '#':
+                continue
+
+            district_poi_counts = line.strip().split()
+            district_id = district_poi_counts[0]
+
+            for poi in range(1, 26):
+                poi_map[district_id][str(poi)] = district_poi_counts[poi]
+
+    return poi_map
+
 def split_date_and_timeslot(datetime_slot):
     year, month, day, timeslot = datetime_slot.split('-')
     date = '-'.join([year, month, day])
@@ -169,11 +191,21 @@ def get_nearest_demand_supply_gap(datetime_slot, district_id, gap_map, slot_dist
 
     return None
 
-def save_features(output_path, gap_map, weather_map, traffic_map):
+def save_features(output_path, gap_map, weather_map, traffic_map, poi_map):
     incomplete_data_count = 0
 
     with open(output_path, 'w') as f:
-        f.write('# district_id\tdate\ttimeslot\tday_of_week\tweather_t-1\tcelsius_t-1\tpm25_t-1\tweather_t-2\tcelsius_t-2\tpm25_t-2\ttf_lv1_t-1\ttf_lv2_t-1\ttf_lv3_t-1\ttf_lv4_t-1\ttf_lv1_t-2\ttf_lv2_t-2\ttf_lv3_t-2\ttf_lv4_t-2\tdemand_t-1\tsupply_t-1\tgap_t-1\tdemand_t-2\tsupply_t-2\tgap_t-2\tgap\n')
+        f.write('# district_id\tdate\ttimeslot\tday_of_week\t'
+                'weather_t-1\tcelsius_t-1\tpm25_t-1\t'
+                'weather_t-2\tcelsius_t-2\tpm25_t-2\t'
+                'tf_lv1_t-1\ttf_lv2_t-1\ttf_lv3_t-1\ttf_lv4_t-1\t'
+                'tf_lv1_t-2\ttf_lv2_t-2\ttf_lv3_t-2\ttf_lv4_t-2\t'
+                'demand_t-1\tsupply_t-1\tgap_t-1\t'
+                'demand_t-2\tsupply_t-2\tgap_t-2\t'
+                'poi1\tpoi2\tpoi3\tpoi4\tpoi5\tpoi6\tpoi7\tpoi8\tpoi9\t'
+                'poi10\tpoi11\tpoi12\tpoi13\tpoi14\tpoi15\tpoi16\tpoi17\t'
+                'poi18\tpoi19\tpoi20\tpoi21\tpoi22\tpoi23\tpoi24\tpoi25\t'
+                'gap\n')
 
         # Sort output by district_id first
         gap_map_sorted_by_district_id = sorted(gap_map.items(), key = lambda x: int(x[0]))
@@ -233,7 +265,7 @@ def save_features(output_path, gap_map, weather_map, traffic_map):
                     incomplete_data_count += 1
                     continue
 
-                f.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" % (
+                f.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t" % (
                     district_id,
                     date, time_slot, day_of_week,
                     weather_t1['weather'], weather_t1['celsius'], weather_t1['pm25'],
@@ -241,9 +273,11 @@ def save_features(output_path, gap_map, weather_map, traffic_map):
                     tf_lv_t1['tf_lv1'], tf_lv_t1['tf_lv2'], tf_lv_t1['tf_lv3'], tf_lv_t1['tf_lv4'],
                     tf_lv_t2['tf_lv1'], tf_lv_t2['tf_lv2'], tf_lv_t2['tf_lv3'], tf_lv_t2['tf_lv4'],
                     gap_t1['demand'], gap_t1['supply'], gap_t1['gap'],
-                    gap_t2['demand'], gap_t2['supply'], gap_t2['gap'],
-                    gap
+                    gap_t2['demand'], gap_t2['supply'], gap_t2['gap']
                 ))
+                for poi in range(1, 26):
+                    f.write(poi_map[district_id][str(poi)] + '\t')
+                f.write(gap + '\n')
     print("number of incomplete data", incomplete_data_count)
 
 def load_datetime_slot_to_predict(file_path):
@@ -253,14 +287,23 @@ def load_datetime_slot_to_predict(file_path):
             datetime_slot_list.append(line.strip())
     return datetime_slot_list
 
-def save_features_to_predict(output_path, datetime_slot_to_predict_file_path, gap_map, weather_map, traffic_map):
+def save_features_to_predict(output_path, datetime_slot_to_predict_file_path, gap_map, weather_map, traffic_map, poi_map):
 
     incomplete_data_count = 0
     datetime_slot_to_predict_list = load_datetime_slot_to_predict(datetime_slot_to_predict_file_path)
 
     with open(output_path, 'w') as f:
-        f.write('# district_id\tdate\ttimeslot\tday_of_week\tweather_t-1\tcelsius_t-1\tpm25_t-1\tweather_t-2\tcelsius_t-2\tpm25_t-2\ttf_lv1_t-1\ttf_lv2_t-1\ttf_lv3_t-1\ttf_lv4_t-1\ttf_lv1_t-2\ttf_lv2_t-2\ttf_lv3_t-2\ttf_lv4_t-2\tdemand_t-1\tsupply_t-1\tgap_t-1\tdemand_t-2\tsupply_t-2\tgap_t-2\tgap\n')
-
+        f.write('# district_id\tdate\ttimeslot\tday_of_week\t'
+                'weather_t-1\tcelsius_t-1\tpm25_t-1\t'
+                'weather_t-2\tcelsius_t-2\tpm25_t-2\t'
+                'tf_lv1_t-1\ttf_lv2_t-1\ttf_lv3_t-1\ttf_lv4_t-1\t'
+                'tf_lv1_t-2\ttf_lv2_t-2\ttf_lv3_t-2\ttf_lv4_t-2\t'
+                'demand_t-1\tsupply_t-1\tgap_t-1\t'
+                'demand_t-2\tsupply_t-2\tgap_t-2\t'
+                'poi1\tpoi2\tpoi3\tpoi4\tpoi5\tpoi6\tpoi7\tpoi8\tpoi9\t'
+                'poi10\tpoi11\tpoi12\tpoi13\tpoi14\tpoi15\tpoi16\tpoi17\t'
+                'poi18\tpoi19\tpoi20\tpoi21\tpoi22\tpoi23\tpoi24\tpoi25\t'
+                'gap\n')
         for district_id_int in range(1, 67):
             for datetime_slot in datetime_slot_to_predict_list:
                 district_id = str(district_id_int)
@@ -302,7 +345,7 @@ def save_features_to_predict(output_path, datetime_slot_to_predict_file_path, ga
                     incomplete_data_count += 1
                     continue
 
-                f.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" % (
+                f.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t" % (
                     district_id,
                     date, time_slot, day_of_week,
                     weather_t1['weather'], weather_t1['celsius'], weather_t1['pm25'],
@@ -310,9 +353,11 @@ def save_features_to_predict(output_path, datetime_slot_to_predict_file_path, ga
                     tf_lv_t1['tf_lv1'], tf_lv_t1['tf_lv2'], tf_lv_t1['tf_lv3'], tf_lv_t1['tf_lv4'],
                     tf_lv_t2['tf_lv1'], tf_lv_t2['tf_lv2'], tf_lv_t2['tf_lv3'], tf_lv_t2['tf_lv4'],
                     gap_t1['demand'], gap_t1['supply'], gap_t1['gap'],
-                    gap_t2['demand'], gap_t2['supply'], gap_t2['gap'],
-                    gap
+                    gap_t2['demand'], gap_t2['supply'], gap_t2['gap']
                 ))
+                for poi in range(1, 26):
+                    f.write(poi_map[district_id][str(poi)] + '\t')
+                f.write(gap + '\n')
     print("features_to_predict: incomplete_data_count", incomplete_data_count)
 
 if __name__ == '__main__':
@@ -336,6 +381,10 @@ if __name__ == '__main__':
         gap_folder = PROCESSED_DATA_FOLDER + '/gaps_data/' + dataset
         gap_map = load_gap_data(gap_folder)
 
+        # Load POI summary data
+        poi_summary_path = PROCESSED_DATA_FOLDER + '/poi_summary_data/poi_summary_data'
+        poi_map = load_poi_summary_data(poi_summary_path)
+
         # Output file and folder
         features_folder = OUTPUT_FOLDER_PREFIX + dataset
         features_file = features_folder + '/features_ready'
@@ -344,12 +393,12 @@ if __name__ == '__main__':
         if not os.path.exists(features_folder):
             os.makedirs(features_folder)
 
-        save_features(features_file, gap_map, weather_map, traffic_map)
+        save_features(features_file, gap_map, weather_map, traffic_map, poi_map)
 
         if dataset == 'test_set_1':
             PREDICTION_DATA_FOLDER = '../../processed_data/prediction_data'
             features_to_predict_file = PREDICTION_DATA_FOLDER + '/to_predict_features'
             datetime_slot_for_prediction_file = PREDICTION_DATA_FOLDER + '/datetime_for_prediction.txt'
 
-            save_features_to_predict(features_to_predict_file, datetime_slot_for_prediction_file, gap_map, weather_map, traffic_map)
+            save_features_to_predict(features_to_predict_file, datetime_slot_for_prediction_file, gap_map, weather_map, traffic_map, poi_map)
     print("Creating features data time", round(time() - start_time, 3), "s")

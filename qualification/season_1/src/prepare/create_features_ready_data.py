@@ -188,6 +188,10 @@ def save_features(output_path, gap_map, weather_map, traffic_map):
                 datetime_slot = sub_item[0]
                 features = sub_item[1]
 
+                # Ignore new year data
+                if "2016-01-01" in datetime_slot:
+                    continue
+
                 # If slot is less than 3, it doesn't have 2 previous slots info, ignore it
                 if datetime_slot[-2:] in ['-1', '-2']:
                     incomplete_data_count += 1
@@ -343,7 +347,7 @@ if __name__ == '__main__':
         save_features(features_file, gap_map, weather_map, traffic_map)
 
         if dataset == 'test_set_1':
-            PREDICTION_DATA_FOLDER = '../../prediction_data'
+            PREDICTION_DATA_FOLDER = '../../processed_data/prediction_data'
             features_to_predict_file = PREDICTION_DATA_FOLDER + '/to_predict_features'
             datetime_slot_for_prediction_file = PREDICTION_DATA_FOLDER + '/datetime_for_prediction.txt'
 

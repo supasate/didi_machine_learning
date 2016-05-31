@@ -50,5 +50,25 @@ if __name__ == "__main__":
     score = mape_score(pred, target_test)
     print('MAPE score ', score)
 
+    # Clean outliers
+    pred = model.predict(feature_train)
+
+    cleaned = []
+    for i in range(len(pred)):
+        mape = abs(pred[i] - target_train[i]) / target_train[i]
+        cleaned.append((feature_train[i], target_train[i], pred[i], mape))
+    cleaned.sort(key = lambda x: x[3])
+    cleaned = cleaned[: int(len(pred) * 0.80)]
+    feature_train, target_train, pred, mape = zip(* cleaned)
+    start_time = time()
+    model.fit(feature_train, target_train)
+    print("re-training time after cleaning outliers", round(time() - start_time, 3), "s")
+
+    start_time = time()
+    pred = model.predict(feature_test)
+    print("prediction time after cleaning outliers", round(time() - start_time, 3), "s")
+    score = mape_score(pred, target_test)
+    print("MAPE score after cleaning outliers", score)
+
     # Save model for later use
     save_model(model, './model', MODEL_NAME)

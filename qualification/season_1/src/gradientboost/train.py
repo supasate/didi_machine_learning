@@ -9,32 +9,37 @@ from mape import mape_score
 from sklearn.grid_search import GridSearchCV
 
 # Import learning algo
-from sklearn.tree import DecisionTreeRegressor
+from sklearn.ensemble import GradientBoostingRegressor
 
 # Ratio to split cross validation test set
-TEST_SIZE = 0.3
+TEST_SIZE = 0.7
 
 # Seed number for random splitting of cross validation test set
 RANDOM_STATE = 42
 
 # Model name to be saved
-MODEL_NAME = 'decision_tree_regressor'
+MODEL_NAME = 'adaboost'
 
-# Change prediction model and parameters here
+
+## Change prediction model and parameters here
 def create_model():
-    model = DecisionTreeRegressor()
+    model = GradientBoostingRegressor()
     return model
 
 def get_model_params():
     return {
-        'max_features': ['auto', 'sqrt', 'log2', None],
-        'max_depth': [None, 1000, 500, 250, 100, 50, 20, 10],
-        'min_samples_split': [2, 3, 4],
-        'min_samples_leaf': [1, 2, 3]
+        #'max_features': ['auto', 'sqrt', 'log2'],
+        'learning_rate': [0.01, 0.1, 0.3],
+        #'max_depth': [1000, 500, 250, 100, 50],
+        #'min_samples_split': [2, 3],
+        #'min_samples_leaf': [1, 2],
+        'loss': ['ls'],
+        'n_estimators': [10, 20, 50, 100, 500, 1000, 2000]
     }
 if __name__ == "__main__":
     # Load and split training data into metadata, features, target
     data_file = '../../processed_data/features_data/training_data/features_ready'
+
     metadata_list, features_list, target_list = load_and_split_data(data_file)
 
     # Split data into training set and cross validation set
